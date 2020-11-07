@@ -1,0 +1,114 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <vector>
+#include <map>
+#include <set>
+
+using namespace std;
+
+class Node
+{
+public:
+    Node* parent;
+    Node* left;
+    Node* right;
+    char val;
+    int freq;
+
+	Node() :freq(0), val(0), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+	Node(char value, int frequency) : val(value), freq(frequency), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+
+	// методы
+
+	Node operator=(const Node other)
+	{
+		this->freq = other.freq;
+		this->val = other.val;
+		return *this;
+	}
+	//bool operator == (Node const& other) { return this->freq == other.freq; }
+	//bool operator < ( Node const& other){ return this->freq < other.freq; }
+	//bool operator > (Node const& other) { return this->freq > other.freq; }
+	friend ostream& operator<<(ostream& os, Node& n)
+	{
+		os << n.val;
+		return os;
+	}
+};
+
+bool operator < (Node const& left, Node const& right) { return left.freq < right.freq; }
+bool operator > (Node const& left, Node const& right) { return left.freq > right.freq; }
+bool operator == (Node const& left, Node const& right) { return left.freq == right.freq; }
+
+class BinaryTree
+{
+public:
+	Node* head;
+	BinaryTree() { head = new Node; }
+
+	//Inner Methods
+	void AddNewParent(multiset<Node>& tab)
+	{
+		Node minElement1 = *min_element(tab.begin(), tab.end());	//находим минимальный элемент
+		tab.erase(minElement1);	//удаляем из multiset
+		Node minElement2 = *min_element(tab.begin(), tab.end());
+		tab.erase(minElement2);
+
+		Node P = *CreateParent(minElement1, minElement2);
+
+		tab.emplace(P);
+	}
+	Node* CreateParent(Node& left, Node& right)
+	{
+		left.parent = right.parent = new Node;	//создание узла-родителя и связывание указателями
+		left.parent->left = &left;
+		right.parent->right = &right;
+
+		left.parent->freq = left.freq + right.freq;
+		return left.parent;
+	}
+public:
+	void BuildTree(multiset<Node> &tab)
+	{
+		while (++tab.begin() != --tab.end())
+		{
+			AddNewParent(tab);
+		}
+		Node L = *min_element(tab.begin(), tab.end());
+		tab.erase(L);
+		head->left = &L;
+		Node R = *min_element(tab.begin(), tab.end());
+		tab.erase(R);
+		head->right = &R;
+	}
+};
+
+int main()
+{
+	char qwerty = (char)33;
+
+	Node a(qwerty, 3);
+	qwerty = (char)34;
+	Node b(qwerty, 7);
+	qwerty = (char)35;
+	Node c(qwerty, 5);
+
+	multiset<Node> tab;
+	vector<Node> vec;
+
+	tab.emplace(a);
+	tab.emplace(b);
+	tab.emplace(c);
+
+	vec.push_back(a);
+	vec.push_back(b);
+	vec.push_back(c);
+
+	BinaryTree Check;
+	Check.BuildTree(tab);
+
+	return 0;
+}
