@@ -1,0 +1,116 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <vector>
+#include <map>
+#include <set>
+#include <list>
+
+using namespace std;
+
+class Node
+{
+public:
+    Node* parent;
+    Node* left;
+    Node* right;
+    char val;
+    int freq;
+
+	Node() :freq(0), val(0), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+	Node(char value, int frequency) : val(value), freq(frequency), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+
+	// методы
+
+	Node operator=(const Node &other)
+	{
+		this->freq = other.freq;
+		this->val = other.val;
+		/*this->parent = other.parent;
+		this->left = other.left;
+		this->right = other.right;*/
+		return *this;
+	}
+	//bool operator == (Node const& other) { return this->freq == other.freq; }
+	//bool operator < ( Node const& other){ return this->freq < other.freq; }
+	//bool operator > (Node const& other) { return this->freq > other.freq; }
+	friend ostream& operator<<(ostream& os, Node& n)
+	{
+		os << n.val;
+		return os;
+	}
+};
+
+bool operator < (Node const& left, Node const& right) { return left.freq < right.freq; }
+bool operator > (Node const& left, Node const& right) { return left.freq > right.freq; }
+bool operator == (Node const& left, Node const& right) { return left.freq == right.freq; }
+
+class BinaryTree
+{
+public:
+	Node* head;
+	BinaryTree() { head = new Node; }
+
+	//Inner Methods
+	void AddNewParent(multiset<Node>& tab, multiset<Node>::iterator& FirstElement)
+	{
+		Node minElement1 = *min_element(FirstElement, tab.end());	//находим минимальный элемент
+		FirstElement++;	//удаляем из multiset
+		Node minElement2 = *min_element(FirstElement, tab.end());
+		FirstElement++;
+
+		Node P = CreateParent(minElement1, minElement2);
+
+		tab.emplace(P);
+	}
+	Node& CreateParent(Node& left, Node& right)
+	{
+		left.parent = right.parent = new Node;	//создание узла-родителя и связывание указателями
+		left.parent->left = &left;
+		right.parent->right = &right;
+
+		left.parent->freq = left.freq + right.freq;
+		return *left.parent;
+	}
+public:
+	void BuildTree(multiset<Node> &tab)
+	{
+		multiset<Node>::iterator FirstElement = tab.begin();
+		while (FirstElement != tab.end())
+		{
+			AddNewParent(tab, FirstElement);
+		}
+		*head = *(--tab.end());		//head - последний элемент multiset
+	}
+};
+
+int main()
+{
+	char qwerty = (char)33;
+
+	Node a(qwerty, 3);
+	qwerty = (char)34;
+	Node b(qwerty, 7);
+	qwerty = (char)35;
+	Node c(qwerty, 5);
+
+	multiset<Node> tab;
+	vector<Node> vec;
+
+	tab.emplace(a);
+	tab.emplace(b);
+	tab.emplace(c);
+
+	vec.push_back(a);
+	vec.push_back(b);
+	vec.push_back(c);
+
+	BinaryTree Check;
+	Check.BuildTree(tab);
+
+	
+
+	return 0;
+}
