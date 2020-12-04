@@ -1,0 +1,79 @@
+class Node
+{
+public:
+	Node* parent;
+	Node* left;
+	Node* right;
+	char val;
+	int freq;
+
+	Node(Node const& other)
+	{
+		val = other.val;
+		freq = other.freq;
+		parent = other.parent;
+		left = other.left;
+		right = other.right;
+	}
+
+	Node() :freq(0), val(0), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+	Node(char value, int frequency) : val(value), freq(frequency), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+	Node(Node* L, Node* R)
+	{
+		left = L;
+		right = R;
+		freq = L->freq + R->freq;
+	}
+	friend ostream& operator<<(ostream& os, Node& n)
+	{
+		os << n.val;
+		return os;
+	}
+};
+
+bool operator < (Node const& left, Node const& right) { return left.freq < right.freq; }
+bool operator > (Node const& left, Node const& right) { return left.freq > right.freq; }
+bool operator == (Node const& left, Node const& right) { return left.freq == right.freq; }
+
+class BinaryTree
+{
+public:
+	Node* head;
+	BinaryTree() { head = new Node; }
+
+	//Inner Methods
+	
+	Node& CreateParent(multiset<Node>& tab, multiset<Node>::iterator& FirstElement)
+	{
+		Node left = *min_element(FirstElement, tab.end());
+		FirstElement++;
+		Node right = *min_element(FirstElement, tab.end());
+		FirstElement++;
+		left.parent = right.parent = new Node;
+		left.parent->left = &left;
+		right.parent->right = &right;
+
+		left.parent->freq = left.freq + right.freq;
+
+		if (FirstElement != tab.end()) {
+			tab.emplace(*left.parent);
+			CreateParent(tab, FirstElement);
+		}
+		else {
+			return *left.parent;
+		}
+	}
+public:
+	void BuildTree(multiset<Node>& tab)
+	{
+		multiset<Node>::iterator FirstElement = tab.begin();
+		head = &CreateParent(tab, FirstElement);
+	}
+};
+BinaryTree BuildTree(BinaryTree& Tree, multiset<Node>& tab)
+{
+	multiset<Node>::iterator FirstElement = tab.begin();
+	Tree.head = &Tree.CreateParent(tab, FirstElement);
+
+	return Tree;
+}
