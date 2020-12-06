@@ -1,0 +1,373 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <vector>
+#include <list>
+#include <map>
+#include <set>
+
+using namespace std;
+
+class Node
+{
+public:
+	Node* parent;
+	Node* left;
+	Node* right;
+	char val;
+	int freq;
+
+	Node(Node const& other)
+	{
+		val = other.val;
+		freq = other.freq;
+		parent = other.parent;
+		left = other.left;
+		right = other.right;
+	}
+
+	Node() :freq(0), val(0), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+	Node(char value, int frequency) : val(value), freq(frequency), parent(NULL), left(NULL), right(NULL) { /*cout << "Constructor" << endl;*/ }
+	Node(Node* L, Node* R)
+	{
+		left = L;
+		right = R;
+		freq = L->freq + R->freq;
+	}
+	friend ostream& operator<<(ostream& os, Node& n)
+	{
+		os << n.val;
+		return os;
+	}
+};
+
+bool operator < (Node const& left, Node const& right) { return left.freq < right.freq; }
+bool operator > (Node const& left, Node const& right) { return left.freq > right.freq; }
+bool operator == (Node const& left, Node const& right) { return left.freq == right.freq; }
+
+struct Compare
+{
+	bool operator()(const Node* l, const Node* r) const { return l->freq < r->freq; }
+};
+
+class BinaryTree
+{
+public:
+	Node* head;
+	BinaryTree() { head = new Node; }
+
+	//Inner Methods
+	
+public:
+	void BuildTree(list <Node*>& TableSet)
+	{
+		while (TableSet.size() != 1)
+		{
+			TableSet.sort(Compare());
+
+			Node* SonL = TableSet.front();
+			TableSet.pop_front();
+			Node* SonR = TableSet.front();
+			TableSet.pop_front();
+
+			Node* parent = new Node(SonL, SonR);
+			TableSet.push_front(parent);
+
+		}
+		head = TableSet.front();
+	}
+	void Encode(Node* head, vector<bool>& code, multimap<char, vector<bool>>& table)
+	{
+
+		if (head->left != NULL)
+		{
+			code.push_back(0);
+			Encode(head->left, code, table);
+		}
+
+		if (head->right != NULL)
+		{
+			code.push_back(1);
+			Encode(head->right, code, table);
+		}
+
+		if ((head->left == NULL) && (head->right == NULL))
+		{
+			table.insert(pair<char, vector<bool>>(head->val, code));
+		}
+		if (code.size() > 0)
+		{
+			code.pop_back();
+		}
+	}
+};
+
+void CodeToFile(ofstream& out, string& str, multimap<char, vector<bool>>& table)
+{
+	int count = 0; char buf = 0; int Ccounter = 0;
+	while (str[Ccounter] != '\0')
+	{
+		char c = str[Ccounter];
+		vector<bool> x = table.find(c)->second;;
+		for (int n = 0; n < x.size(); n++)
+		{
+			buf = buf | x[n] << (7 - count);
+			count++;
+			if (count == 8)
+			{
+				count = 0;
+				out << buf;
+				buf = 0;
+			}
+		}
+		Ccounter++;
+	}
+	while (count != 8)
+	{
+		buf = buf | 0 << (7 - count);
+		count++;
+	}
+	out << buf;
+}
+
+void Decode(ifstream& in, Node* root, int CommonNumberOfChars)
+{
+	Node* cur = root;
+	int count = 0; char byte;
+	byte = in.get();
+	while (!in.eof())
+	{
+		bool b = byte & (1 << (7 - count));
+		if (b) cur = cur->right; else cur = cur->left;
+		if (cur->left == NULL && cur->right == NULL)
+		{
+			cout << cur->val; cur = root;
+			CommonNumberOfChars--;
+		}
+		count++;
+		if (count == 8)
+		{
+			count = 0; byte = in.get();
+		}
+		if (CommonNumberOfChars == 0)break;
+	}
+	cout << cur->val;
+}
+
+string FileToCode(ifstream& in, list <Node*>& TableSet)
+{
+	string s;
+	auto stop = in.tellg();
+	while (true)
+	{
+		char ch = in.get();
+		if (ch == '|')
+		{
+			stop = in.tellg();
+			if (in.get() == '|')
+			{
+				break;
+			}
+			else
+			{
+				in.seekg(stop);
+			}
+
+		}
+		s.push_back(ch);
+	}
+	char sym;
+	int freq;
+	while (!in.eof())
+	{
+		sym = in.get();
+		sym = in.get();
+		in >> freq;
+
+		Node* p = new Node(sym, freq);
+		TableSet.push_back(p);
+	}
+	return s;
+}
+
+void Dec(string& in, Node* root)
+{
+	int c = 0;
+	Node* cur = root;
+	int count = 0; char byte;
+	byte = in[c];
+	int length = in.size();
+	string::iterator end = in.begin();
+
+	while (c < length - 1)
+	{
+		bool b = byte & (1 << (7 - count));
+		if (b) cur = cur->right; else cur = cur->left;
+		if (cur->left == NULL && cur->right == NULL)
+		{
+			cout << cur->val; cur = root;
+			//end++;
+			//CommonNumberOfChars--;
+		}
+		count++;
+		if (count == 8)
+		{
+			c++;
+			end++;
+			count = 0; byte = in[c];
+		}
+		//if (CommonNumberOfChars == 0)break;
+	}
+	//cout << cur->val;
+}
+
+void DECODE(string& in, Node* root, ofstream& out)
+{
+	int c = 0;
+	Node* cur = root;
+	int count = 0; char byte;
+	byte = in[c];
+	int length = in.size();
+	string::iterator end = in.begin();
+
+	while (c < length - 1)
+	{
+		bool b = byte & (1 << (7 - count));
+		if (b) cur = cur->right; else cur = cur->left;
+		if (cur->left == NULL && cur->right == NULL)
+		{
+			out << cur->val; cur = root;
+		}
+		count++;
+		if (count == 8)
+		{
+			c++;
+			end++;
+			count = 0; byte = in[c];
+		}
+	}
+}
+
+
+int main()
+{	
+	ifstream fs("InputOutput.txt", ios::in | ios::binary);
+	//fs.clear();
+	if (fs) { cout << "File opened" << endl; }
+	else { 
+		cout << "File was not opened" << endl;
+		return -1; }
+
+	//string str((istreambuf_iterator<char>(fs)), istreambuf_iterator<char>());	//шо это такое
+	string str;
+	while (!fs.eof())
+	{
+		char InputChar = fs.get();
+		str.push_back(InputChar);
+	}
+	// строка копирует содержимое файла в str
+	fs.close();
+
+	cout << str << endl;
+	const char* myString = str.c_str();
+
+	vector <Node> table;
+	int WhileCounter = 0;
+	char ch;
+	while(myString[WhileCounter] != '\0') //(!fs.eof())	//последний символ из файла загружается 2 раза
+	{
+		int tablesize = table.size();
+		/*fs >>*/ ch = myString[WhileCounter];		// не читаются пробелы
+		if (tablesize > 0)	//начинаем алгоритм только если в таблице уже есть символы
+		{
+			int i = 0;
+			for (i = 0; i < tablesize; i++)
+			{
+				if (ch == table[i].val)
+				{
+					//данный символ уже есть в таблице, увеличиваем количество данных символов в таблице
+					table[i].freq++;
+					break;
+				}
+				
+			}
+			if(i == tablesize)	//если for дошел до конца и не нашел символа в таблице, то вставляем его
+			{
+				//данного символа еще нет в таблице, добавляем новое поле в table и записываем туда 1
+
+				table.push_back(Node(ch, 1));   //вставляем элемент со значением ch и freq = 1
+
+				//нужно заменить pushback на insert чтобы сразу получать отсортированный массив
+			}
+		}
+		else
+		{
+			table.push_back(Node(ch, 1));//действия для первого символа в файле
+		}
+		//cout << ch << endl;		//всегда выводит последний символ два раза		//строка для отладки
+		WhileCounter++;
+	}
+
+	list <Node*> TableSet;
+
+	for (vector<Node>::iterator itr = table.begin(); itr != table.end(); itr++)
+	{
+		Node* p = new Node(itr->val, itr->freq);
+		TableSet.push_back(p);
+	}
+	//table.clear();
+
+	/*while (TableSet.size() != 1)
+	{
+		TableSet.sort();
+
+		Node* SonL = TableSet.front();
+		TableSet.pop_front();
+		Node* SonR = TableSet.front();
+		TableSet.pop_front();
+
+		Node* parent = new Node(SonL, SonR);
+		TableSet.push_back(parent);
+
+	}*/
+
+	BinaryTree CodeTree;
+	CodeTree.BuildTree(TableSet);
+
+	multimap<char, vector<bool>> List_of_words;
+	vector<bool> code;
+	CodeTree.Encode(CodeTree.head, code, List_of_words);
+
+	ofstream out("InputOutput.txt", ios::out | ios::binary);
+
+	CodeToFile(out, str, List_of_words);
+	out << "||";	//символ начала дерева
+	for (auto it = table.begin(); it != table.end(); it++)
+	{
+		out << " " << it->val << it->freq;
+	}
+	out.close();
+
+	ifstream in("InputOutput.txt", ios::in | ios::binary);
+	list<Node*> DecodeTableSet;
+	string Decoded = FileToCode(in, DecodeTableSet);	// оставляет указатель в конце файла, делает TableSet, вычленяет строку
+	in.close();
+
+	/*int CommonNumberOfChars = 0;
+	for (auto it = table.begin(); it != table.end(); it++)
+	{
+		CommonNumberOfChars = CommonNumberOfChars + it->freq;
+	}*/
+
+	BinaryTree DecodeTree;
+	DecodeTree.BuildTree(DecodeTableSet);
+	//Decode(in, CodeTree.head, WhileCounter);
+	//Dec(Decoded, DecodeTree.head);
+	ofstream FinalOutput("InputOutput.txt", ios::out | ios::binary);
+	DECODE(Decoded, DecodeTree.head, FinalOutput);
+	FinalOutput.close();
+
+	return 0;
+}
